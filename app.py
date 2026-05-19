@@ -263,7 +263,7 @@ async function go(){{
 
     // Mic
     stream=await navigator.mediaDevices.getUserMedia({{
-      audio:{{sampleRate:SR,channelCount:1,echoCancellation:true,noiseSuppression:true}}
+      audio:{{sampleRate:SR,channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}
     }});
 
     ctx=new AudioContext({{sampleRate:SR}});
