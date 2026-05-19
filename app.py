@@ -236,14 +236,18 @@ async function go(){{
           document.getElementById('mRTF').textContent=d.rtf!=null?d.rtf.toFixed(2):'—';
           document.getElementById('mLat').textContent=d.latency_ms!=null?d.latency_ms.toFixed(0)+'ms':'—';
           document.getElementById('mCnf').textContent=d.confidence!=null?d.confidence.toFixed(2):'—';
-          render(); addLog('lp',d.text);
+          render(); addLog('lp','partial: '+d.text.substring(0,60));
         }}
         else if(d.type==='final' && d.text){{
-          fin+=(fin?' ':'')+d.text; part=''; segs++;
+          // For final events, the server has already merged the text
+          // We just update fin with the complete merged text
+          fin=d.text; 
+          part=''; 
+          segs++;
           document.getElementById('mSeg').textContent=segs;
           document.getElementById('mRTF').textContent=d.rtf!=null?d.rtf.toFixed(2):'—';
           document.getElementById('mLat').textContent=d.latency_ms!=null?d.latency_ms.toFixed(0)+'ms':'—';
-          render(); addLog('lf',d.text);
+          render(); addLog('lf','final: '+d.text.substring(0,60));
         }}
         else if(d.type==='info')  addLog('li',d.message||'');
         else if(d.type==='error') {{ addLog('le',d.message||''); st2('err','خطأ: '+(d.message||'')); }}
@@ -313,6 +317,10 @@ function clr(){{
   document.getElementById('mSeg').textContent='0';
   document.getElementById('log').innerHTML='';
   document.getElementById('cc').textContent='0 حرف';
+  // Send reset signal to server if connected
+  if(ws && ws.readyState===1){{
+    try{{ ws.send(JSON.stringify({{type:'reset'}})); }}catch(e){{}}
+  }}
   render();
 }}
 
