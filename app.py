@@ -394,13 +394,13 @@ if st.button("🎯 حوّل الملف", use_container_width=True):
                             text_box.markdown(display_html, unsafe_allow_html=True)
                             
                             m_col1, m_col2 = metrics_box.columns(2)
-                            m_col1.metric("Latency (s)", f"{data.get('latency_ms', 0) / 1000:.2f}s")
+                            m_col1.metric("Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
                             m_col2.metric("RTF (Real-Time Factor)", f"{data.get('rtf', 0):.3f}")
                             
                         elif data.get("type") == "summary":
                             final_res = data
                             m_col1, m_col2, m_col3 = metrics_box.columns(3)
-                            m_col1.metric("Total Latency", f"{data.get('latency_ms', 0) / 1000:.2f}s")
+                            m_col1.metric("Total Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
                             m_col2.metric("Audio Duration", f"{data.get('duration_s', 0):.2f}s")
                             m_col3.metric("RTF", f"{data.get('rtf', 0):.3f}")
                             
