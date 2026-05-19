@@ -393,8 +393,16 @@ if st.button("🎯 حوّل الملف", use_container_width=True):
                             display_html = f"""<div dir="rtl" style="background:#080e1a;padding:16px;border-radius:10px;font-size:17px;line-height:1.8;color:#e2e8f0;border:1px solid #1e293b">{full_text}</div>"""
                             text_box.markdown(display_html, unsafe_allow_html=True)
                             
+                            m_col1, m_col2 = metrics_box.columns(2)
+                            m_col1.metric("Latency (s)", f"{data.get('latency_ms', 0) / 1000:.2f}s")
+                            m_col2.metric("RTF (Real-Time Factor)", f"{data.get('rtf', 0):.3f}")
+                            
                         elif data.get("type") == "summary":
                             final_res = data
+                            m_col1, m_col2, m_col3 = metrics_box.columns(3)
+                            m_col1.metric("Total Latency", f"{data.get('latency_ms', 0) / 1000:.2f}s")
+                            m_col2.metric("Audio Duration", f"{data.get('duration_s', 0):.2f}s")
+                            m_col3.metric("RTF", f"{data.get('rtf', 0):.3f}")
                             
                     except json.JSONDecodeError:
                         continue # Ignore chunks that fail to parse
