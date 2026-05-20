@@ -236,18 +236,14 @@ async function go(){{
           document.getElementById('mRTF').textContent=d.rtf!=null?d.rtf.toFixed(2):'—';
           document.getElementById('mLat').textContent=d.latency_ms!=null?d.latency_ms.toFixed(0)+'ms':'—';
           document.getElementById('mCnf').textContent=d.confidence!=null?d.confidence.toFixed(2):'—';
-          render(); addLog('lp','partial: '+d.text.substring(0,60));
+          render(); addLog('lp',d.text);
         }}
         else if(d.type==='final' && d.text){{
-          // For final events, the server has already merged the text
-          // We just update fin with the complete merged text
-          fin=d.text; 
-          part=''; 
-          segs++;
+          fin+=(fin?' ':'')+d.text; part=''; segs++;
           document.getElementById('mSeg').textContent=segs;
           document.getElementById('mRTF').textContent=d.rtf!=null?d.rtf.toFixed(2):'—';
           document.getElementById('mLat').textContent=d.latency_ms!=null?d.latency_ms.toFixed(0)+'ms':'—';
-          render(); addLog('lf','final: '+d.text.substring(0,60));
+          render(); addLog('lf',d.text);
         }}
         else if(d.type==='info')  addLog('li',d.message||'');
         else if(d.type==='error') {{ addLog('le',d.message||''); st2('err','خطأ: '+(d.message||'')); }}
@@ -267,7 +263,7 @@ async function go(){{
 
     // Mic
     stream=await navigator.mediaDevices.getUserMedia({{
-      audio:{{sampleRate:SR,channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}}
+      audio:{{sampleRate:SR,channelCount:1,echoCancellation:true,noiseSuppression:true}}
     }});
 
     ctx=new AudioContext({{sampleRate:SR}});
@@ -317,10 +313,6 @@ function clr(){{
   document.getElementById('mSeg').textContent='0';
   document.getElementById('log').innerHTML='';
   document.getElementById('cc').textContent='0 حرف';
-  // Send reset signal to server if connected
-  if(ws && ws.readyState===1){{
-    try{{ ws.send(JSON.stringify({{type:'reset'}})); }}catch(e){{}}
-  }}
   render();
 }}
 
@@ -401,16 +393,8 @@ if st.button("🎯 حوّل الملف", use_container_width=True):
                             display_html = f"""<div dir="rtl" style="background:#080e1a;padding:16px;border-radius:10px;font-size:17px;line-height:1.8;color:#e2e8f0;border:1px solid #1e293b">{full_text}</div>"""
                             text_box.markdown(display_html, unsafe_allow_html=True)
                             
-                            m_col1, m_col2 = metrics_box.columns(2)
-                            m_col1.metric("Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
-                            m_col2.metric("RTF (Real-Time Factor)", f"{data.get('rtf', 0):.3f}")
-                            
                         elif data.get("type") == "summary":
                             final_res = data
-                            m_col1, m_col2, m_col3 = metrics_box.columns(3)
-                            m_col1.metric("Total Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
-                            m_col2.metric("Audio Duration", f"{data.get('duration_s', 0):.2f}s")
-                            m_col3.metric("RTF", f"{data.get('rtf', 0):.3f}")
                             
                     except json.JSONDecodeError:
                         continue # Ignore chunks that fail to parse
