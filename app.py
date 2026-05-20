@@ -101,7 +101,7 @@ body{{background:transparent;font-family:'Tajawal','Segoe UI',sans-serif;}}
 .tp{{color:#38bdf8;font-style:italic;opacity:0.85;}}
 .ph{{color:#1e293b;font-size:15px;}}
 
-.metrics{{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px;}}
+.metrics{{display:grid;grid-template-columns:repeat(5,1fr);gap:9px;margin-bottom:14px;}}
 .mc{{background:#080e1a;border:1px solid #1e293b;border-radius:7px;padding:11px;text-align:center;}}
 .mv{{font-family:'JetBrains Mono',monospace;font-size:19px;font-weight:700;color:#38bdf8;}}
 .ml{{font-size:10px;color:#334155;text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}}
@@ -116,7 +116,7 @@ body{{background:transparent;font-family:'Tajawal','Segoe UI',sans-serif;}}
 .btnex{{background:#0f1e38;border:1px solid #3b82f6;color:#93c5fd;padding:7px 16px;border-radius:6px;font-size:12px;cursor:pointer;}}
 .btnex:hover{{background:#1d4ed8;color:#fff;}}
 
-@media(max-width:540px){{.metrics{{grid-template-columns:repeat(2,1fr);}}}}
+@media(max-width:540px){{.metrics{{grid-template-columns:repeat(3,1fr);}}}}
 </style>
 
 <div class="wrap">
@@ -132,8 +132,9 @@ body{{background:transparent;font-family:'Tajawal','Segoe UI',sans-serif;}}
   <div class="tbox" id="tbox"><span class="ph" id="ph">ستظهر هنا نتائج التحويل...</span></div>
 
   <div class="metrics">
+    <div class="mc"><div class="mv" id="mRTT">—</div><div class="ml">Net RTT</div></div>
     <div class="mc"><div class="mv" id="mRTF">—</div><div class="ml">RTF</div></div>
-    <div class="mc"><div class="mv" id="mLat">—</div><div class="ml">Latency</div></div>
+    <div class="mc"><div class="mv" id="mLat">—</div><div class="ml">Proc Lat</div></div>
     <div class="mc"><div class="mv" id="mSeg">0</div><div class="ml">Segments</div></div>
     <div class="mc"><div class="mv" id="mCnf">—</div><div class="ml">VAD Conf</div></div>
   </div>
@@ -157,6 +158,7 @@ const SR       = 16000;
 
 let ws=null, stream=null, ctx=null, wlet=null, analyser=null, vuTick=null;
 let fin='', part='', segs=0;
+let lastPing=0, pingInt=null;
 
 const workletSrc = `
 registerProcessor('pcm-proc', class extends AudioWorkletProcessor {{
@@ -226,12 +228,23 @@ async function go(){{
       st2('live','متصل — يستمع...');
       addLog('li','متصل: '+WS_URL);
       document.getElementById('bStop').disabled=false;
+      
+      pingInt = setInterval(()=>{{
+        if(ws && ws.readyState===1){{
+          lastPing = performance.now();
+          ws.send(JSON.stringify({{type: 'ping'}}));
+        }}
+      }}, 2000);
     }};
 
     ws.onmessage=(e)=>{{
       try{{
         const d=JSON.parse(e.data);
-        if(d.type==='partial' && d.text){{
+        if(d.type==='pong'){{
+          const rtt = performance.now() - lastPing;
+          document.getElementById('mRTT').textContent = Math.round(rtt) + 'ms';
+        }}
+        else if(d.type==='partial' && d.text){{
           part=d.text;
           document.getElementById('mRTF').textContent=d.rtf!=null?d.rtf.toFixed(2):'—';
           document.getElementById('mLat').textContent=d.latency_ms!=null?d.latency_ms.toFixed(0)+'ms':'—';
@@ -294,6 +307,7 @@ async function go(){{
 
 function halt(){{
   clearInterval(vuTick); document.getElementById('vu').style.width='0%';
+  if(pingInt) clearInterval(pingInt);
   if(wlet){{ wlet.disconnect(); wlet=null; }}
   if(analyser){{ analyser.disconnect(); analyser=null; }}
   if(ctx){{ ctx.close(); ctx=null; }}
@@ -309,7 +323,7 @@ function halt(){{
 
 function clr(){{
   fin=''; part=''; segs=0;
-  ['mRTF','mLat','mCnf'].forEach(id=>document.getElementById(id).textContent='—');
+  ['mRTT','mRTF','mLat','mCnf'].forEach(id=>document.getElementById(id).textContent='—');
   document.getElementById('mSeg').textContent='0';
   document.getElementById('log').innerHTML='';
   document.getElementById('cc').textContent='0 حرف';
@@ -393,8 +407,16 @@ if st.button("🎯 حوّل الملف", use_container_width=True):
                             display_html = f"""<div dir="rtl" style="background:#080e1a;padding:16px;border-radius:10px;font-size:17px;line-height:1.8;color:#e2e8f0;border:1px solid #1e293b">{full_text}</div>"""
                             text_box.markdown(display_html, unsafe_allow_html=True)
                             
+                            m_col1, m_col2 = metrics_box.columns(2)
+                            m_col1.metric("Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
+                            m_col2.metric("RTF", f"{data.get('rtf', 0):.3f}")
+                            
                         elif data.get("type") == "summary":
                             final_res = data
+                            
+                            m_col1, m_col2 = metrics_box.columns(2)
+                            m_col1.metric("Latency (ms)", f"{data.get('latency_ms', 0):.0f}ms")
+                            m_col2.metric("RTF", f"{data.get('rtf', 0):.3f}")
                             
                     except json.JSONDecodeError:
                         continue # Ignore chunks that fail to parse
